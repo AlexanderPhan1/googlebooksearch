@@ -1,84 +1,29 @@
-var express = require('express');
-var bodyParser = require('body-parser');
-var logger = require('morgan');
-var mongoose = require('mongoose');
+//THIS IS STEP 6. ONCE YOU HAVE THE ROUTING DONE YOU MAKE THE SERVER.JS FILE. HERE YOU BRING IN THE DEPENDENCIES, THE MIDDLEWARE.
+const express = require("express");
+const path = require("path");
+const mongoose = require('mongoose');
+const routes = require('./routes');
+const PORT = process.env.PORT || 3001;
+const app = express();
 
-var Article = require('./models/Article.js');
+app.use(express.urlencoded({extended: true}));
+app.use(express.json());
 
-var app = express();
-var PORT = process.env.PORT || 3000;
+//BECAUSE WE ARE IN DEVELOPMENT, WE ARE RUNNING ON 2 SERVERS. HERE THIS SAYS IF ITS IN PRODUCTION, BUILD OUT WHAT'S IN THE CLIENT FOLDER AND USE.
+if (process.env.NODE_ENV === "production") {
+  app.use(express.static("client/build"));
+}
 
-// Run Morgan for Logging
-app.use(logger('dev'));
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({extended: true}));
-app.use(bodyParser.text());
-app.use(bodyParser.json({type:'application/vnd.api+json'}));
+//GRAB ALL TEH ROUTES IVE IMPORTED AND SET THEM UP
+app.use(routes);
 
-app.use(express.static('./public'));
-
-//mongoose.connect('mongodb://localhost/nytreact');
-mongoose.connect('mongodb://heroku_jns4phwt:61tt9c1oiotedcl5ndjhfv9pn5@ds019936.mlab.com:19936/heroku_jns4phwt');
-
-
-var db = mongoose.connection;
-
-db.on('error', function (err) {
-  console.log('Mongoose Error: ', err);
+app.get("*", function (req, res) {
+  res.sendFile(path.join(__dirname, "./client/build/index.html"));
 });
 
-db.once('open', function () {
-  console.log('Mongoose connection successful.');
-});
+//THIS IS TO TURN ON MONGOOSE
+mongoose.connect(process.env.MONGODB_URI || "mongodb://localhost/googlebooksmern", {useNewUrlParser: true});
 
-app.get('/', function(req, res){
-  res.sendFile('./public/index.html');
-})
-
-app.get('/api/saved', function(req, res) {
-
-  Article.find({})
-    .exec(function(err, doc){
-
-      if(err){
-        console.log(err);
-      }
-      else {
-        res.send(doc);
-      }
-    })
-});
-
-app.post('/api/saved', function(req, res){
-
-  var newArticle = new Article({
-    title: req.body.title,
-    date: req.body.date,
-    url: req.body.url
-  });
-
-  newArticle.save(function(err, doc){
-    if(err){
-      console.log(err);
-      res.send(err);
-    } else {
-      res.json(doc);
-    }
-  });
-
-});
-
-app.delete('/api/saved/:id', function(req, res){
-
-  Article.find({'_id': req.params.id}).remove()
-    .exec(function(err, doc) {
-      res.send(doc);
-  });
-
-});
-
-
-
-app.listen(PORT, function() {
-  console.log("App listening on PORT: " + PORT);
+app.listen(PORT, function () {
+  console.log(`🌎 ==> Server now on port ${PORT}!`);
 });
