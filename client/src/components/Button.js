@@ -1,15 +1,13 @@
 import React from "react";
-import {
-  Button
-} from 'rebass'
+import "./style.css";
 
-// Destructuring the type, className, children and onClick props, applying them to the button element
-function Button({ type = "default", className, children, onClick }) {
-  return (
-    <Button cursor='pointer' bg='green' onClick={onClick} className={[className].join(" ")}>
-      {children}
-    </Button>
-  );
+function Buttons(props) {
+    return(
+        <div>
+        <button type="submit" className="btn mr-2" onClick={props.function1}>{props.buttonName1}</button>
+        <button type="submit" className="btn" onClick={props.function2}>{props.buttonName2}</button>
+        </div>
+    )
 }
 
-export default Button;
+export default Buttons;
