@@ -1,29 +1,26 @@
-//THIS IS STEP 6. ONCE YOU HAVE THE ROUTING DONE YOU MAKE THE SERVER.JS FILE. HERE YOU BRING IN THE DEPENDENCIES, THE MIDDLEWARE.
 const express = require("express");
-const path = require("path");
-const mongoose = require('mongoose');
-const routes = require('./routes');
+const mongoose = require("mongoose");
+const routes = require("./routes");
 const PORT = process.env.PORT || 3001;
 const app = express();
 
-app.use(express.urlencoded({extended: true}));
+// Define middleware here
+app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
-
-//BECAUSE WE ARE IN DEVELOPMENT, WE ARE RUNNING ON 2 SERVERS. HERE THIS SAYS IF ITS IN PRODUCTION, BUILD OUT WHAT'S IN THE CLIENT FOLDER AND USE.
+// Serve up static assets (usually on heroku)
 if (process.env.NODE_ENV === "production") {
   app.use(express.static("client/build"));
 }
 
-//GRAB ALL TEH ROUTES IVE IMPORTED AND SET THEM UP
+// Define API routes here
+// Add routes, both API and view
 app.use(routes);
 
-app.get("*", function (req, res) {
-  res.sendFile(path.join(__dirname, "./client/build/index.html"));
-});
 
-//THIS IS TO TURN ON MONGOOSE
-mongoose.connect(process.env.MONGODB_URI || "mongodb://localhost/googlebooksmern", {useNewUrlParser: true});
+// Connect to the Mongo DB
+mongoose.connect(process.env.MONGODB_URI || "mongodb://localhost/googlebooks");
 
-app.listen(PORT, function () {
-  console.log(`🌎 ==> Server now on port ${PORT}!`);
+
+app.listen(PORT, () => {
+  console.log(`🌎 ==> API server now on port ${PORT}!`);
 });
