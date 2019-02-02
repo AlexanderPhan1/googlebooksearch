@@ -1,41 +1,80 @@
-const express = require("express");
-const logger = require("morgan");
-const mongoose = require("mongoose");
-const path = require("path");
+'use strict';
 
+// Modules
+const express    = require('express'),
+      exphbs     = require('express-handlebars'),
+      bodyParser = require('body-parser'),
+      logger     = require('morgan'),
+      mongoose   = require('mongoose'),
+      Promise    = require('bluebird'),
 
-const PORT = process.env.PORT || 3001;
-const app = express();
-const routes = require("./routes/routes");
+      // Local dependencies
+      Article    = require('./models/Article.js'),
 
-// Define middleware here
-app.use(express.urlencoded({ extended: true }));
-app.use(express.json());
-// Serve up static assets (usually on heroku)
-if (process.env.NODE_ENV === "production") {
-  app.use(express.static("client/build"));
-}
-app.use(logger("dev"));
-// Use apiRoutes
-app.use("/api", routes);
+      // Const vars
+      app    = express(),
+      hbs    = exphbs.create({ defaultLayout: 'main', extname: '.hbs' }),
+      PORT   = process.env.PORT || 3000,
+      DB_URI = process.env.MONGODB_URI || require('./mongodb_uri.json').LOCAL_URI;
 
-const MONGODB_URI = process.env.MONGODB_URI || "mongodb://localhost/googlebooks";
+// Handlebars init
+app.engine('.hbs', hbs.engine);
+app.set('view engine', '.hbs');
+if (process.env.PORT) app.enable('view cache');  // Disable view cache for local testing
 
-mongoose.connect(MONGODB_URI, { useNewUrlParser: true });
+// Morgan for logging
+app.use(logger('dev'));
 
-// Send every request to the React app
-// Define any API routes before this runs
-app.get("*", function(req, res) {
-  res.sendFile(path.join(__dirname, "./client/build/index.html"));
-}); 
+// Body parser init
+app.use(bodyParser.json());
+app.use(bodyParser.json({ type: 'application/vnd.api+json' }));
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.text());
 
-const server = app.listen(PORT, function() {
-  console.log(`🌎 ==> API server now on port ${PORT}!`);
+// Route for static content
+app.use(express.static(process.cwd() + '/public'));
+
+// Mongoose init
+mongoose.Promise = Promise;
+mongoose.connect(DB_URI);
+const db = mongoose.connection;
+
+db.on('error', function (err) {
+  console.log('Mongoose Error: ', err);
 });
 
-const io = require('socket.io')(server)
+db.once('open', function () {
+  console.log('Mongoose connection successful.');
+});
 
-io.on("connection", function(socket) {
-  socket.broadcast.emit("user connected");
-  
-})
+
+
+// Render main site index
+app.get('/', (req, res) => res.render('index'));
+
+
+// Mongoose routes
+app.get('/api/saved', (req, res) => 
+  Article.find({}).then(data => 
+    res.json(data)
+  )
+);
+
+app.post('/api/saved', (req, res) => 
+  Article.create(req.body).then(data =>
+    res.json(data)
+  )
+);
+
+app.delete('/api/saved/:id', (req, res) =>
+  Article.findByIdAndRemove(req.params.id).then(data => 
+    res.json(data)
+  )
+);
+
+
+
+// Init server
+app.listen(PORT, function () {
+  console.log(`App listening on port ${PORT}`);
+});
